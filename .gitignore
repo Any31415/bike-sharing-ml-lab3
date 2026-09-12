@@ -5,3 +5,5 @@ data/*
 *.pyc
 __pycache__/
 catboost_info/
+.env
+Лабораторная работа 2 (весна 2026).pdf

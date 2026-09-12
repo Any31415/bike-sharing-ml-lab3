@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
 from src.predict import load_model, predict
+from src.db import save_prediction
 
 app = FastAPI(title="Bike Sharing Prediction API")
 model = load_model()
@@ -27,4 +28,5 @@ def health_check():
 @app.post("/predict")
 def get_prediction(features: BikeFeatures):
     result = predict(model, features.model_dump())
+    save_prediction(features.model_dump(), result)  # сохраняем запрос+результат в БД
     return {"predicted_count": result}
