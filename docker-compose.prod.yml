@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   api:
-    build: .
+    image: ani31415/bike-sharing-api:latest
     container_name: bike-sharing-container
     ports:
       - "8000:8000"
