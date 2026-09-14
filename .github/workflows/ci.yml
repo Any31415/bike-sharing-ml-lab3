@@ -8,6 +8,27 @@ jobs:
   build-and-test:
     runs-on: ubuntu-latest
 
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: ${{ secrets.MYSQL_ROOT_PASSWORD }}
+          MYSQL_DATABASE: bike_sharing
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    env:
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      DB_USER: root
+      DB_PASSWORD: ${{ secrets.MYSQL_ROOT_PASSWORD }}
+      DB_NAME: bike_sharing
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -26,13 +47,31 @@ jobs:
         run: |
           pip install "dvc[gdrive]"
           pip install "pyOpenSSL==24.2.1"
-        
 
       - name: Pull data and model from DVC
         run: |
           echo '${{ secrets.GDRIVE_CREDENTIALS_DATA }}' > gdrive-credentials.json
           dvc remote modify storage --local gdrive_service_account_json_file_path gdrive-credentials.json
           dvc pull
+
+      - name: Create predictions table
+        run: |
+          mysql -h 127.0.0.1 -P 3306 -u root -p"${{ secrets.MYSQL_ROOT_PASSWORD }}" bike_sharing -e "
+          CREATE TABLE IF NOT EXISTS predictions (
+              id INT AUTO_INCREMENT PRIMARY KEY,
+              season INT NOT NULL CHECK (season BETWEEN 1 AND 4),
+              holiday INT NOT NULL CHECK (holiday IN (0, 1)),
+              workingday INT NOT NULL CHECK (workingday IN (0, 1)),
+              weather INT NOT NULL CHECK (weather BETWEEN 1 AND 4),
+              temp FLOAT NOT NULL,
+              humidity FLOAT NOT NULL,
+              windspeed FLOAT NOT NULL,
+              hour INT NOT NULL CHECK (hour BETWEEN 0 AND 23),
+              dayofweek INT NOT NULL CHECK (dayofweek BETWEEN 0 AND 6),
+              month INT NOT NULL CHECK (month BETWEEN 1 AND 12),
+              predicted_count FLOAT NOT NULL,
+              created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+          );"
 
       - name: Run tests
         run: pytest tests/ -v
