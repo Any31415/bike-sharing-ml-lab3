@@ -16,38 +16,17 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Create .env file
+      - name: Create .env for docker-compose
         run: |
           echo "MYSQL_ROOT_PASSWORD=${{ secrets.MYSQL_ROOT_PASSWORD }}" >> .env
           echo "MYSQL_DATABASE=bike_sharing" >> .env
-
-      - name: Pull Docker image
-        run: docker pull ani31415/bike-sharing-api:latest
+          echo "VAULT_PASSWORD=${{ secrets.VAULT_PASSWORD }}" >> .env
 
       - name: Start containers
-        run: docker compose -f docker-compose.prod.yml up -d
+        run: docker compose up -d --build
 
       - name: Wait for services to start
-        run: sleep 20
-
-      - name: Create predictions table
-        run: |
-          docker exec bike-sharing-db mysql -u root -p"${{ secrets.MYSQL_ROOT_PASSWORD }}" bike_sharing -e "
-          CREATE TABLE IF NOT EXISTS predictions (
-              id INT AUTO_INCREMENT PRIMARY KEY,
-              season INT NOT NULL CHECK (season BETWEEN 1 AND 4),
-              holiday INT NOT NULL CHECK (holiday IN (0, 1)),
-              workingday INT NOT NULL CHECK (workingday IN (0, 1)),
-              weather INT NOT NULL CHECK (weather BETWEEN 1 AND 4),
-              temp FLOAT NOT NULL,
-              humidity FLOAT NOT NULL,
-              windspeed FLOAT NOT NULL,
-              hour INT NOT NULL CHECK (hour BETWEEN 0 AND 23),
-              dayofweek INT NOT NULL CHECK (dayofweek BETWEEN 0 AND 6),
-              month INT NOT NULL CHECK (month BETWEEN 1 AND 12),
-              predicted_count FLOAT NOT NULL,
-              created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-          );"
+        run: sleep 25
 
       - name: Health check
         run: curl -f http://localhost:8000/ || exit 1
@@ -74,4 +53,4 @@ jobs:
 
       - name: Stop containers
         if: always()
-        run: docker compose -f docker-compose.prod.yml down
+        run: docker compose down -v
