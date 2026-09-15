@@ -1,20 +1,27 @@
-version: '3.8'
+﻿version: '3.8'
 
 services:
+  vault-init:
+    build:
+      context: .
+      dockerfile: vault-init/Dockerfile
+    container_name: bike-sharing-vault-init
+    environment:
+      VAULT_PASSWORD: ${VAULT_PASSWORD}
+    volumes:
+      - secrets-data:/secrets
+
   api:
     build: .
     container_name: bike-sharing-container
+    depends_on:
+      - vault-init
+    volumes:
+      - secrets-data:/secrets
     ports:
       - "8000:8000"
     restart: unless-stopped
-    environment:
-      DB_HOST: db
-      DB_PORT: 3306
-      DB_USER: root
-      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-      DB_NAME: ${MYSQL_DATABASE}
-    depends_on:
-      - db
+
   db:
     image: mysql:8.0
     container_name: bike-sharing-db
@@ -23,3 +30,9 @@ services:
       MYSQL_DATABASE: ${MYSQL_DATABASE}
     ports:
       - "3306:3306"
+    volumes:
+      - db-data:/var/lib/mysql
+
+volumes:
+  secrets-data:
+  db-data:

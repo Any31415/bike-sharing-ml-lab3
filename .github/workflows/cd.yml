@@ -16,19 +16,17 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Create .env file
+      - name: Create .env for docker-compose
         run: |
           echo "MYSQL_ROOT_PASSWORD=${{ secrets.MYSQL_ROOT_PASSWORD }}" >> .env
           echo "MYSQL_DATABASE=bike_sharing" >> .env
-
-      - name: Pull Docker image
-        run: docker pull ani31415/bike-sharing-api:latest
+          echo "VAULT_PASSWORD=${{ secrets.VAULT_PASSWORD }}" >> .env
 
       - name: Start containers
-        run: docker-compose -f docker-compose.prod.yml up -d
+        run: docker compose up -d --build
 
       - name: Wait for services to start
-        run: sleep 20
+        run: sleep 25
 
       - name: Health check
         run: curl -f http://localhost:8000/ || exit 1
@@ -39,6 +37,10 @@ jobs:
             -H "Content-Type: application/json" \
             -d '{"season":3,"holiday":0,"workingday":1,"weather":1,"temp":25,"humidity":55,"windspeed":8,"hour":8,"dayofweek":2,"month":7}' \
             || exit 1
+
+      - name: Show API logs (for debugging)
+        if: always()
+        run: docker logs bike-sharing-container
 
       - name: Check data was saved to MySQL
         run: |
@@ -51,4 +53,4 @@ jobs:
 
       - name: Stop containers
         if: always()
-        run: docker-compose -f docker-compose.prod.yml down
+        run: docker compose down -v
