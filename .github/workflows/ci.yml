@@ -87,4 +87,4 @@ jobs:
         with:
           context: .
           push: true
-          tags: ani31415/bike-sharing-api:latest
+          tags: ani31415/bike-sharing-api-lab2:latest
